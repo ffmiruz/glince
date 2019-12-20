@@ -11,9 +11,11 @@ import (
 )
 
 func main() {
-	urls := ScrapeUrls("huawei p30 review")
-
-	for _, u := range urls {
+	urls := scrapeLinks("huawei p30 review")
+	log.Println(len(urls))
+	return
+	urls1 := []string{"https://www.androidauthority.com/huawei-p30-pro-review-968705/"}
+	for _, u := range urls1 {
 		paragraphs, err := pScrape(u)
 		if err != nil {
 			log.Printf("%v for %v", err, u)
@@ -49,9 +51,28 @@ func main() {
 }
 
 // TODO 1
-func ScrapeUrls(_ string) []string {
-	return []string{"https://www.androidcentral.com/huawei-p30-pro-review-3-months-later",
-		"https://www.digitaltrends.com/cell-phone-reviews/huawei-p30-pro-review/"}
+func scrapeLinks(term string) []string {
+	ddgPrefix := "https://duckduckgo.com/?q="
+	suffix := strings.Join(strings.Fields(term), "+")
+	searchLink := ddgPrefix + suffix
+
+	doc, err := goquery.NewDocument(searchLink)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var urls []string
+	doc.Find(".result__body").Each(func(i int, s *goquery.Selection) {
+		log.Println(s.Find(".result__snippet").Text())
+		u, e := s.Attr("href")
+		if !e {
+			log.Fatal(e)
+		}
+		log.Println(u)
+		urls = append(urls, u)
+	})
+	return urls
+
 }
 
 // number of characters in p element to consider a content.
@@ -97,4 +118,6 @@ func parseText(paragraphs []string) parse.Text {
 
 // TODO 2
 // Write to html
-func (urls,rankedText []string){}
+func writeToHtml(urls, rankedText []string) {
+
+}
