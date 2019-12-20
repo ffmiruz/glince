@@ -27,8 +27,8 @@ func main() {
 		// Default algorithm for ranking text.
 		algorithmDef := textrank.NewDefaultAlgorithm()
 
-		text := parseText(paragraphs)
 		// preparing *rank.Rank object for ranking
+		text := parseText(paragraphs)
 		for _, sentence := range text.GetSentences() {
 			convert.TextToRank(sentence, language, tr.GetRankData())
 		}
@@ -48,16 +48,17 @@ func main() {
 
 }
 
+// TODO 1
 func ScrapeUrls(_ string) []string {
 	return []string{"https://www.androidcentral.com/huawei-p30-pro-review-3-months-later",
 		"https://www.digitaltrends.com/cell-phone-reviews/huawei-p30-pro-review/"}
 }
 
 // number of characters in p element to consider a content.
-// remove stuffs like ads and attribution in p.
+// to remove stuffs like ads and attribution in p.
 const paraLimit = 175
 
-// give url, return paragraphs
+// scrape contents of <p> tag
 func pScrape(url string) ([]string, error) {
 	var items []string
 
@@ -93,3 +94,7 @@ func parseText(paragraphs []string) parse.Text {
 	return text
 
 }
+
+// TODO 2
+// Write to html
+func (urls,rankedText []string){}
