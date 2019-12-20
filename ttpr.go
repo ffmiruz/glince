@@ -11,11 +11,9 @@ import (
 )
 
 func main() {
-	urls := scrapeLinks("huawei p30 review")
-	log.Println(len(urls))
-	return
-	urls1 := []string{"https://www.androidauthority.com/huawei-p30-pro-review-968705/"}
-	for _, u := range urls1 {
+	linkCount := 4
+	urls := scrapeDDG("xiaomi a1 review")
+	for _, u := range urls[0:linkCount] {
 		paragraphs, err := pScrape(u)
 		if err != nil {
 			log.Printf("%v for %v", err, u)
@@ -45,14 +43,13 @@ func main() {
 		for _, s := range sentences {
 			ranked = append(ranked, strings.TrimSpace(s.Value))
 		}
-		log.Printf("%v for %v", ranked[3], u)
+		log.Printf("%v for %v", ranked[0], u)
 	}
 
 }
 
-// TODO 1
-func scrapeLinks(term string) []string {
-	ddgPrefix := "https://duckduckgo.com/?q="
+func scrapeDDG(term string) []string {
+	ddgPrefix := "https://duckduckgo.com/html?q="
 	suffix := strings.Join(strings.Fields(term), "+")
 	searchLink := ddgPrefix + suffix
 
@@ -62,15 +59,14 @@ func scrapeLinks(term string) []string {
 	}
 
 	var urls []string
-	doc.Find(".result__body").Each(func(i int, s *goquery.Selection) {
-		log.Println(s.Find(".result__snippet").Text())
-		u, e := s.Attr("href")
-		if !e {
-			log.Fatal(e)
-		}
-		log.Println(u)
-		urls = append(urls, u)
-	})
+	results := doc.Find(".result")
+	if len(results.Nodes) <= 0 {
+		log.Println("goquery.Find give no results") // Watch for html/css structure change
+	}
+	for i := range results.Nodes {
+		u := results.Eq(i).Find(".result__url").Text()
+		urls = append(urls, "https://"+strings.TrimSpace(u))
+	}
 	return urls
 
 }
