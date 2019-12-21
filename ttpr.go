@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/DavidBelicza/TextRank"
 	"github.com/DavidBelicza/TextRank/convert"
@@ -12,39 +13,50 @@ import (
 
 func main() {
 	linkCount := 4
-	urls := scrapeDDG("xiaomi a1 review")
+	urls := scrapeDDG("cubot dinosaur review")
+
+	var wg sync.WaitGroup
 	for _, u := range urls[0:linkCount] {
-		paragraphs, err := pScrape(u)
-		if err != nil {
-			log.Printf("%v for %v", err, u)
-		}
-
-		tr := textrank.NewTextRank()
-		// Default Rule for parsing.
-		//rule := textrank.NewDefaultRule()
-		// Default Language for filtering stop words.
-		language := textrank.NewDefaultLanguage()
-		// Default algorithm for ranking text.
-		algorithmDef := textrank.NewDefaultAlgorithm()
-
-		// preparing *rank.Rank object for ranking
-		text := parseText(paragraphs)
-		for _, sentence := range text.GetSentences() {
-			convert.TextToRank(sentence, language, tr.GetRankData())
-		}
-
-		// Run the ranking.
-		tr.Ranking(algorithmDef)
-		// Get the most important 4 sentences.
-		sentences := textrank.FindSentencesByRelationWeight(tr, 4)
-
-		var ranked []string
-		// Put just the sentences in slice
-		for _, s := range sentences {
-			ranked = append(ranked, strings.TrimSpace(s.Value))
-		}
-		log.Printf("%v for %v", ranked[0], u)
+		wg.Add(1)
+		go GetRanked(u, &wg)
 	}
+	wg.Wait()
+
+}
+
+func GetRanked(u string, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	paragraphs, err := pScrape(u)
+	if err != nil {
+		log.Printf("%v for %v", err, u)
+	}
+
+	tr := textrank.NewTextRank()
+	// Default Rule for parsing.
+	//rule := textrank.NewDefaultRule()
+	// Default Language for filtering stop words.
+	language := textrank.NewDefaultLanguage()
+	// Default algorithm for ranking text.
+	algorithmDef := textrank.NewDefaultAlgorithm()
+
+	// preparing *rank.Rank object for ranking
+	text := parseText(paragraphs)
+	for _, sentence := range text.GetSentences() {
+		convert.TextToRank(sentence, language, tr.GetRankData())
+	}
+
+	// Run the ranking.
+	tr.Ranking(algorithmDef)
+	// Get the most important 4 sentences.
+	sentences := textrank.FindSentencesByRelationWeight(tr, 4)
+
+	var ranked []string
+	// Put just the sentences in slice
+	for _, s := range sentences {
+		ranked = append(ranked, strings.TrimSpace(s.Value))
+	}
+	log.Printf("%v for %v", ranked[0], u)
 
 }
 
@@ -112,8 +124,11 @@ func parseText(paragraphs []string) parse.Text {
 
 }
 
-// TODO 2
+// TODO
 // Write to html
 func writeToHtml(urls, rankedText []string) {
 
 }
+
+// TODO
+// - pScrape <nosript> case
