@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"strings"
 	"sync"
@@ -12,8 +13,8 @@ import (
 )
 
 func main() {
-	linkCount := 4
-	urls := scrapeDDG("cubot dinosaur review")
+	linkCount := 3
+	urls := scrapeDDG("gopro 8 review")
 
 	var wg sync.WaitGroup
 	for _, u := range urls[0:linkCount] {
@@ -21,6 +22,7 @@ func main() {
 		go GetRanked(u, &wg)
 	}
 	wg.Wait()
+	writeHtml([]string{"gggg", "ffff"})
 
 }
 
@@ -126,9 +128,17 @@ func parseText(paragraphs []string) parse.Text {
 
 // TODO
 // Write to html
-func writeToHtml(urls, rankedText []string) {
-
+func writeHtml(rankedText []string) {
+	var b []byte
+	for i := range rankedText {
+		b = append(b, rankedText[i]...)
+	}
+	err := ioutil.WriteFile("exp/index.html", b, 0644)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // TODO
 // - pScrape <nosript> case
+// ---- sized slice
