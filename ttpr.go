@@ -1,8 +1,10 @@
 package main
 
 import (
+	"html/template"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"sync"
 
@@ -13,25 +15,32 @@ import (
 )
 
 func main() {
-	linkCount := 3
-	urls := scrapeDDG("gopro 8 review")
+	linkCount := 4
+	term := "the gereg review"
+	urls := scrapeDDG(term)
+	reviews := make([]Result, linkCount)
 
 	var wg sync.WaitGroup
-	for _, u := range urls[0:linkCount] {
+	for i, u := range urls[0:linkCount] {
+		reviews[i].Url = u
 		wg.Add(1)
-		go GetRanked(u, &wg)
+		go GetRanked(&reviews[i], &wg)
 	}
 	wg.Wait()
-	writeHtml([]string{"gggg", "ffff"})
-
+	writeHtml(reviews, term)
 }
 
-func GetRanked(u string, wg *sync.WaitGroup) {
+type Result struct {
+	Url  string
+	Summ []string
+}
+
+func GetRanked(r *Result, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	paragraphs, err := pScrape(u)
+	paragraphs, err := pScrape(r.Url)
 	if err != nil {
-		log.Printf("%v for %v", err, u)
+		log.Printf("%v for %v", err, r.Url)
 	}
 
 	tr := textrank.NewTextRank()
@@ -53,13 +62,10 @@ func GetRanked(u string, wg *sync.WaitGroup) {
 	// Get the most important 4 sentences.
 	sentences := textrank.FindSentencesByRelationWeight(tr, 4)
 
-	var ranked []string
 	// Put just the sentences in slice
 	for _, s := range sentences {
-		ranked = append(ranked, strings.TrimSpace(s.Value))
+		r.Summ = append(r.Summ, strings.TrimSpace(s.Value))
 	}
-	log.Printf("%v for %v", ranked[0], u)
-
 }
 
 func scrapeDDG(term string) []string {
@@ -126,14 +132,31 @@ func parseText(paragraphs []string) parse.Text {
 
 }
 
+func writeHtml(pages []Result, term string) {
+
+	t := template.Must(template.ParseFiles("exp/layout.html"))
+	f, err := os.Create("exp/" + strings.Join(strings.Fields(term), "-") + ".html")
+	if err != nil {
+		log.Println("create file: ", err)
+		return
+	}
+	defer f.Close()
+	err = t.Execute(f, pages)
+	if err != nil {
+		log.Print("execute: ", err)
+		return
+	}
+
+}
+
 // TODO
 // Write to html
-func writeHtml(rankedText []string) {
-	var b []byte
+func WriteHtml2(rankedText []string) {
+	var data []byte
 	for i := range rankedText {
-		b = append(b, rankedText[i]...)
+		data = append(data, rankedText[i]...)
 	}
-	err := ioutil.WriteFile("exp/index.html", b, 0644)
+	err := ioutil.WriteFile("exp/index.html", data, 0644)
 	if err != nil {
 		log.Println(err)
 	}
