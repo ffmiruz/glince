@@ -1,10 +1,8 @@
-package main
+package ttpr
 
 import (
-	"html/template"
 	"io/ioutil"
 	"log"
-	"os"
 	"strings"
 	"sync"
 
@@ -14,25 +12,23 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-func main() {
-	linkCount := 4
-	term := "the gereg review"
-	urls := scrapeDDG(term)
-	reviews := make([]Result, linkCount)
-
-	var wg sync.WaitGroup
-	for i, u := range urls[0:linkCount] {
-		reviews[i].Url = u
-		wg.Add(1)
-		go GetRanked(&reviews[i], &wg)
-	}
-	wg.Wait()
-	writeHtml(reviews, term)
-}
-
 type Result struct {
 	Url  string
 	Summ []string
+}
+
+func Search(term string, linkCount int) []Result {
+	urls := scrapeDDG(term)
+	results := make([]Result, linkCount)
+
+	var wg sync.WaitGroup
+	for i, u := range urls[0:linkCount] {
+		results[i].Url = u
+		wg.Add(1)
+		go GetRanked(&results[i], &wg)
+	}
+	wg.Wait()
+	return results
 }
 
 func GetRanked(r *Result, wg *sync.WaitGroup) {
@@ -41,6 +37,7 @@ func GetRanked(r *Result, wg *sync.WaitGroup) {
 	paragraphs, err := pScrape(r.Url)
 	if err != nil {
 		log.Printf("%v for %v", err, r.Url)
+		return
 	}
 
 	tr := textrank.NewTextRank()
@@ -56,12 +53,10 @@ func GetRanked(r *Result, wg *sync.WaitGroup) {
 	for _, sentence := range text.GetSentences() {
 		convert.TextToRank(sentence, language, tr.GetRankData())
 	}
-
 	// Run the ranking.
 	tr.Ranking(algorithmDef)
 	// Get the most important 4 sentences.
 	sentences := textrank.FindSentencesByRelationWeight(tr, 4)
-
 	// Put just the sentences in slice
 	for _, s := range sentences {
 		r.Summ = append(r.Summ, strings.TrimSpace(s.Value))
@@ -119,7 +114,7 @@ func pScrape(url string) ([]string, error) {
 	return items, err
 }
 
-// paragraph into parse.Text struct
+// put paragraph into parse.Text struct
 func parseText(paragraphs []string) parse.Text {
 	text := parse.Text{}
 	for _, p := range paragraphs {
@@ -132,36 +127,5 @@ func parseText(paragraphs []string) parse.Text {
 
 }
 
-func writeHtml(pages []Result, term string) {
-
-	t := template.Must(template.ParseFiles("exp/layout.html"))
-	f, err := os.Create("exp/" + strings.Join(strings.Fields(term), "-") + ".html")
-	if err != nil {
-		log.Println("create file: ", err)
-		return
-	}
-	defer f.Close()
-	err = t.Execute(f, pages)
-	if err != nil {
-		log.Print("execute: ", err)
-		return
-	}
-
-}
-
-// TODO
-// Write to html
-func WriteHtml2(rankedText []string) {
-	var data []byte
-	for i := range rankedText {
-		data = append(data, rankedText[i]...)
-	}
-	err := ioutil.WriteFile("exp/index.html", data, 0644)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
 // TODO
 // - pScrape <nosript> case
-// ---- sized slice
