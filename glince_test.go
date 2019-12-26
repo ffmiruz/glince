@@ -1,0 +1,5 @@
+package glince
+
+import (
+	"testing"
+)

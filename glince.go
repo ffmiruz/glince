@@ -1,7 +1,6 @@
-package ttpr
+package glince
 
 import (
-	"io/ioutil"
 	"log"
 	"strings"
 	"sync"

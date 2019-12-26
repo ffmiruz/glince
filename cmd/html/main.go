@@ -6,17 +6,18 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ffmiyo/ttpr"
+	"github.com/ffmiyo/glince"
 )
 
 func main() {
 	linkCount := 4
-	term := "the gereg review"
-	reviews := ttpr.Search(term, linkCount)
+	term := "panasonic g7 review"
+
+	reviews := glince.Search(term, linkCount)
 	writeHtml(term, reviews)
 }
 
-func writeHtml(term string, pages []ttpr.Result) {
+func writeHtml(term string, pages []glince.Result) {
 	t := template.Must(template.ParseFiles("./layout.gohtml"))
 	f, err := os.Create(strings.Join(strings.Fields(term), "-") + ".html")
 	if err != nil {
